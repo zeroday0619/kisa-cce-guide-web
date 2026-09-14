@@ -29,7 +29,7 @@ from conversion.paths import SITE_SKILL_DIRECTORY
 from conversion.site_validation import validate_site
 
 EXPECTED_CRITERION_COUNT = 382
-EXPECTED_HTML_PAGE_COUNT = 469
+EXPECTED_HTML_PAGE_COUNT = 537
 EXPECTED_TABLE_COUNT = 69
 EXPECTED_LICENSE = "공공누리 - 공공저작물 자유이용허락"
 HEX_SHORT_LENGTH = 3

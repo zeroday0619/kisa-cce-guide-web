@@ -40,6 +40,7 @@ from conversion.parallel import (
     validate_worker_count,
 )
 from conversion.paths import BUILD_DIRECTORY, criterion_directory
+from conversion.revised_content import build_revised_edition, load_revisions
 from conversion.runtime_logging import add_logging_arguments, configure_runtime_logging
 from conversion.validate_content import validate_repository
 
@@ -418,6 +419,7 @@ def _build(  # noqa: PLR0913
 ) -> list[Path]:
     """Build the canonical corpus and return generated artifact paths."""
 
+    load_revisions(repository)
     if output_directory == repository / BUILD_DIRECTORY:
         # Replacing generated directories prevents removed criteria from leaving stale files.
         for generated_directory_name in ("normalized", "search", "site"):
@@ -530,6 +532,11 @@ def _build(  # noqa: PLR0913
             normalized_documents=normalized_documents,
             search_index=search_index,
             base_path=base_path,
+        )
+    )
+    generated_paths.extend(
+        build_revised_edition(
+            repository=repository, output_root=output_directory, base_path=base_path
         )
     )
     return generated_paths

@@ -4,6 +4,8 @@
 
 이 저장소는 KISA가 운영하거나 승인한 공식 배포본이 아닙니다. 원본 PDF가 점검, 감사와 법적 판단의 기준입니다. 변환 규칙과 승인 조건은 [문서 변환 정책](CONVERSION_POLICY.md)을 따릅니다.
 
+원본 382개 항목과 별도로 UNIX 67개 항목의 Linux 개정 초안을 제공합니다. 개정판은 RHEL 10 계열, Ubuntu 26.04 LTS, Debian 13을 대상으로 하며 공식 KISA 개정본이 아닙니다. 원본은 기존 URL에 유지하고 개정판은 `/revised/`에 생성합니다. 범위와 검증 상태는 [UNIX 개정판 운영](docs/operations/unix-revised-edition.md)을 참조합니다.
+
 ## 원문
 
 | 항목 | 내용 |
@@ -34,6 +36,7 @@ uv run python -m conversion.serve_site --no-build
 | 경로 | 용도 |
 | --- | --- |
 | `content/criteria/<domainIdentifier>/` | Canonical criterion Markdown과 provenance |
+| `content/revisions/unix/` | 원본과 분리된 Linux 개정 초안과 공식 참고 문헌 |
 | `content/assets/<criterionSlug>/` | 필요한 원문 영역 시각 자산 |
 | `content/source/` | Checksum으로 고정된 기준 원문 |
 | `conversion/` | 전사, 의미 구조화, 검증, 정규화와 빌드 도구 |

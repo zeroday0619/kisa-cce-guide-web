@@ -36,6 +36,8 @@
       </div>
       <nav id="site-navigation" class="site-nav" aria-label="주요 메뉴" data-site-navigation data-open="true">
         {% include "partials/domain-navigation.html" %}
+        <a href="{{ home_url }}">원본</a>
+        <a href="{{ revised_url }}">UNIX 개정판</a>
         <a href="{{ search_url }}"{% if current_navigation == "search" %} aria-current="page"{% endif %}>검색</a>
       </nav>
     </div>

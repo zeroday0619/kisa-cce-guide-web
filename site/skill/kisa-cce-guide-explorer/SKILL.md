@@ -36,6 +36,8 @@ Append these paths to the base URL:
 - Technical domain: `/{domainIdentifier}/`
 - Category: `/{domainIdentifier}/{categoryIdentifier}/`
 - Criterion article: `/{domainIdentifier}/{slug}/`
+- Independent Linux revision directory: `/revised/`
+- Independent revised UNIX article: `/revised/unix/{slug}/`
 
 Examples:
 
@@ -52,6 +54,8 @@ Do not inspect repository source files, build artifacts, or JSON datasets unless
 ### Search Directory
 
 Use `/search/` for natural-language questions, codes, titles, commands, paths, settings, products, and protocols. Search order identifies candidates; it does not prove that the first result is the only applicable criterion.
+
+Search covers the original 382 criteria. For RHEL 10, Ubuntu 26.04 LTS, or Debian 13 guidance, open the corresponding `/revised/unix/{slug}/` article after identifying the UNIX code. Revised articles are independent editorial drafts, not official KISA revisions or evidence of runtime verification. Cite the edition used and follow its original-counterpart link when comparing requirements.
 
 ### Domain and Category Pages
 
