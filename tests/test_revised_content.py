@@ -89,6 +89,11 @@ def test_revised_pages_preserve_edition_and_base_path(tmp_path: Path) -> None:
     assert len(search["records"]) == REVISED_CRITERION_COUNT
     assert all(record["route"].startswith("/revised/unix/") for record in search["records"])
     assert search["records"][0]["targetLabels"] == ["RHEL 10", "Ubuntu 26.04 LTS", "Debian 13"]
+    search_page = (output / "site/revised/search/index.html").read_text()
+    assert '<h1 id="search-heading">UNIX 개정판 검색</h1>' in search_page
+    assert 'href="/guide/search/"' in search_page
+    assert 'href="/guide/revised/search/" aria-current="page"' in search_page
+    assert 'data-search-index-url="/guide/revised/dataset/search-index.json"' in search_page
     assert 'href="/guide/revised/search/"' in page
     assert 'data-source-physical-pages="12"' not in page
     assert "data-copy" in page
