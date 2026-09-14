@@ -114,6 +114,16 @@ Canonical criterion package
 - Repository 경로 이동은 `/<domainIdentifier>/<criterionSlug>/` public route와 canonical anchor를 변경해서는 안 된다.
 - `sourceAnnotations`와 provenance는 경로 이동 뒤에도 canonical 콘텐츠와 내부 검토 데이터에 유지해야 한다.
 
+### Linux 개정판 계층
+
+- `content/revisions/unix/`는 원본 전사와 독립된 편집 콘텐츠이며 UNIX U-01부터 U-67까지 다룬다.
+- 개정판은 RHEL 10 계열, Ubuntu 26.04 LTS, Debian 13의 차이를 설명하며 원본 Markdown, provenance, source annotation 및 원문 review registry를 변경하지 않는다.
+- 각 개정 문서는 원본 항목 코드, 제목, 대상 플랫폼, 초안 상태와 공식 참고 문헌 URL을 기록한다. 배포판별 적용 조건, 점검, 조치와 운영 영향을 본문에 설명한다.
+- 공식 배포판 문서는 개정 내용의 근거다. 원본 PDF의 source span을 개정 내용의 근거로 재사용해서는 안 된다.
+- 개정판은 `/revised/` 아래에 별도 HTML과 dataset을 생성한다. 원본 public route, 382개 canonical criterion과 원본 검색 dataset 계약은 유지한다.
+- 개정 페이지는 비공식 개정 초안임을 표시한다. 문서 검증 통과를 실제 배포판 실행 검증 또는 사람 승인으로 표시해서는 안 된다.
+- 원문 릴리스 승인과 개정판 검토는 별개다. 개정판 작성으로 원문 review 상태를 승격해서는 안 된다.
+
 ### 원본 계층
 
 - 원본 PDF는 변경하지 않는다.

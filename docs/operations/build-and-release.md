@@ -59,11 +59,15 @@ uv run python -m conversion.serve_site \
 
 빌드는 홈, 12개 분야, 분류, 382개 criterion, 검색, 404, 정규화 JSON, taxonomy JSON, `/SKILL.md`, `/skill/`, 반응형·접근성·인쇄 자산을 생성한다. 모든 HTML의 언어, 단일 H1, landmark, skip link, anchor, 내부 링크, 이미지, 표와 검색 anchor를 정적 검사한다. 원본 PDF는 사이트에 복사하지 않는다.
 
+같은 빌드에서 UNIX 개정판 인덱스와 67개 항목을 `/revised/` 아래에 생성한다. 전체 HTML은 원본 469개와 개정판 68개를 합한 537개다. 개정판 dataset은 `/revised/dataset.json`이며 원본 검색 dataset과 분리한다. [UNIX 개정판 운영](unix-revised-edition.md)에 대상 배포판과 검증 범위를 설명한다.
+
 공통 header의 화면 테마 선택기는 시스템 설정, 화이트, 다크, OLED 블랙을 제공한다. 명시적으로 선택한 값은 브라우저에 저장하며, 시스템 설정은 운영체제의 밝은 화면과 어두운 화면 변경을 따른다. OLED 블랙은 본문 canvas와 주요 surface를 `#000000`으로 렌더링하고, 인쇄 출력은 선택한 화면 테마와 관계없이 흰 배경과 검은 글자를 사용한다.
 
 ## GitHub Pages 배포
 
 `.github/workflows/pages-build.yml`은 수동 실행에서 GitHub Pages base path를 적용하고, canonical 검증과 사이트 생성을 통과한 Pages 전용 artifact를 `github-pages` environment에 배포한다. 이 workflow는 `--release` 검증을 실행하지 않으며, 릴리스 검증은 아래 절차로 별도 수행한다.
+
+원본과 개정판은 같은 Pages artifact에 포함된다. 개정 브랜치를 선택해 수동 실행하면 해당 브랜치의 두 판본을 함께 배포한다. 서로 다른 브랜치를 각각 배포해 같은 Pages 사이트를 덮어쓰지 않는다. 원본 URL은 유지되고 개정판은 동일 base path 아래의 `/revised/`에서 열린다.
 
 빌드 작업은 `contents: read`, `pages: read` 권한만 사용한다. 배포 작업은 `pages: write`, `id-token: write` 권한만 사용한다.
 

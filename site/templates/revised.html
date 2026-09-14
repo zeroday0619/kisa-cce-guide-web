@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<main id="main-content" class="page-shell page-shell--single skill-page">
+  <nav class="breadcrumb" aria-label="판본 경로"><ol><li><a href="{{ home_url }}">원본 가이드</a></li><li><a href="{{ revised_url }}">UNIX 개정판</a></li></ol></nav>
+  <article class="surface skill-document" aria-labelledby="revision-title">
+    <header class="skill-page__header">
+      <p class="section-heading__eyebrow">INDEPENDENT REVISION · DRAFT</p>
+      <h1 id="revision-title">{{ revision_title }}</h1>
+      <p class="note">독립 개정 초안 · KISA 공식 개정본이 아닙니다. RHEL 10, Ubuntu 26.04 LTS, Debian 13 기준입니다. 배포판 실환경 검증과 사람 검토는 완료되지 않았습니다.</p>
+    </header>
+    <div class="skill-document__body">{{ revision_body }}</div>
+  </article>
+</main>
+{% endblock %}

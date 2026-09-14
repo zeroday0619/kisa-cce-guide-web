@@ -237,6 +237,7 @@ def _render_page(
             base_path=base_path,
         ),
         "home_url": _site_url("/", base_path=base_path),
+        "revised_url": _site_url("/revised/", base_path=base_path),
         "json_alternate_url": json_alternate_url,
         "license_label": license_label,
         "script_urls": [
@@ -947,6 +948,11 @@ def _detail_page(
             "code": code,
             "content_model": content_model,
             "criterion_title": title,
+            "revised_criterion_url": (
+                _site_url(f"/revised/unix/{code.lower()}/", base_path=base_path)
+                if domain_identifier == "unix"
+                else None
+            ),
             "document_class": document_class,
             "domain_label": domain_label,
             "domain_url": _site_url(f"/{domain_identifier}/", base_path=base_path),

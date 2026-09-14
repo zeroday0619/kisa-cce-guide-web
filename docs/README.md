@@ -10,6 +10,7 @@
 | [변환 워크플로](operations/conversion-workflows.md) | 초기 corpus 생성, Codex-native 변환, 재개와 산출물 |
 | [Legacy 변환 워크플로](operations/legacy-conversion.md) | Structured-JSON 기반 migration 경로와 병렬 실행 |
 | [빌드와 릴리스](operations/build-and-release.md) | 검증, 빌드, 로컬 서버, Pages artifact, 릴리스 게이트 |
+| [UNIX 개정판 운영](operations/unix-revised-edition.md) | Linux 배포판 기준, 원본 분리, 개정 검토와 동시 배포 |
 | [NVIDIA 디자인 참고 분석](design/nvidia-reference-analysis.md) | 현재 사이트 디자인의 출발점이 된 외부 레퍼런스 분석 |
 
 ## 문서 경계

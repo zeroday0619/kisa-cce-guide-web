@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeroday0619.github.io/kisa-cce-guide/schemas/revised-dataset.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "edition", "records"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "edition": {"const": "revised"},
+    "records": {
+      "type": "array",
+      "minItems": 67,
+      "maxItems": 67,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterionCode", "title", "platforms", "status", "sources", "body", "route", "originalRoute"
+        ],
+        "properties": {
+          "criterionCode": {"type": "string", "pattern": "^U-(0[1-9]|[1-5][0-9]|6[0-7])$"},
+          "title": {"type": "string", "pattern": "\\S"},
+          "platforms": {"const": ["rhel-10", "ubuntu-26.04", "debian-13"]},
+          "status": {"const": "draft"},
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "url"],
+              "properties": {
+                "title": {"type": "string", "pattern": "\\S"},
+                "url": {"type": "string", "format": "uri", "pattern": "^https://[^/]+"}
+              }
+            }
+          },
+          "body": {"type": "string", "pattern": "\\S"},
+          "route": {"type": "string", "pattern": "^/(?:[^/?#]+/)*revised/unix/u-(0[1-9]|[1-5][0-9]|6[0-7])/$"},
+          "originalRoute": {"type": "string", "pattern": "^/(?:[^/?#]+/)*unix/u-(0[1-9]|[1-5][0-9]|6[0-7])/$"}
+        }
+      }
+    }
+  }
+}
