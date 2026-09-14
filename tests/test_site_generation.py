@@ -11,6 +11,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
+from xml.etree import ElementTree as ET
 
 import pytest
 from jinja2 import StrictUndefined, UndefinedError
@@ -689,6 +690,18 @@ def test_llms_discovery_links_resolve(generated_site: Path) -> None:
     """The discovery document must distinguish editions and link to built pages."""
 
     _assert_llms_links_resolve(generated_site)
+
+
+def test_local_build_generates_robots_without_an_unconfigured_sitemap(
+    generated_site: Path,
+) -> None:
+    """Local builds must not advertise a guessed production sitemap URL."""
+
+    robots = (generated_site / "robots.txt").read_text(encoding="utf-8")
+    assert "User-agent: *" in robots
+    assert "Allow: /" in robots
+    assert "Sitemap:" not in robots
+    assert not (generated_site / "sitemap.xml").exists()
 
 
 def test_llm_usage_and_skill_page_are_responsive(generated_site: Path) -> None:
@@ -1496,8 +1509,33 @@ def test_subpath_build_prefixes_links() -> None:
 
     with TemporaryDirectory() as directory:
         output_root = Path(directory)
-        generated_paths = build(output_root=output_root, base_path="/kisa-cce-guide-web")
+        generated_paths = build(
+            output_root=output_root,
+            base_path="/kisa-cce-guide-web",
+            site_origin="https://guide.example",
+        )
         assert output_root / "site" / "llms.txt" in generated_paths
+        site_root = output_root / "site"
+        assert site_root / "robots.txt" in generated_paths
+        assert site_root / "sitemap.xml" in generated_paths
+        robots = (site_root / "robots.txt").read_text(encoding="utf-8")
+        assert "User-agent: *" in robots
+        assert "Sitemap: https://guide.example/kisa-cce-guide-web/sitemap.xml" in robots
+        # The XML is generated locally from the repository's trusted build inputs.
+        sitemap = ET.parse(site_root / "sitemap.xml").getroot()  # noqa: S314
+        namespace = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
+        assert sitemap.tag == f"{namespace}urlset"
+        locations = [element.text for element in sitemap.findall(f"{namespace}url/{namespace}loc")]
+        expected_locations = sorted(
+            "https://guide.example/kisa-cce-guide-web/"
+            + path.relative_to(site_root).as_posix().removesuffix("index.html")
+            for path in site_root.rglob("index.html")
+        )
+        assert len(locations) == EXPECTED_HTML_PAGE_COUNT - 1
+        assert locations == expected_locations
+        assert len(set(locations)) == len(locations)
+        assert "https://guide.example/kisa-cce-guide-web/unix/u-01/" in locations
+        assert "https://guide.example/kisa-cce-guide-web/revised/unix/u-67/" in locations
         _assert_llms_links_resolve(output_root / "site", base_path="/kisa-cce-guide-web")
         inspector = _inspect(output_root / "site" / "index.html")
         assert "/kisa-cce-guide-web/search/" in inspector.links

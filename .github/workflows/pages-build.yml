@@ -41,6 +41,7 @@ jobs:
         run: >-
           uv run --locked python -m conversion.build_content
           --base-path "${{ steps.pages.outputs.base_path }}"
+          --site-origin "${{ steps.pages.outputs.origin }}"
 
       - name: Verify original and revised editions
         run: |
@@ -50,6 +51,8 @@ jobs:
           test -f .artifacts/build/site/revised/unix/u-01/index.html
           test -f .artifacts/build/site/revised/unix/u-67/index.html
           test -f .artifacts/build/site/revised/dataset.json
+          test -f .artifacts/build/site/robots.txt
+          test -f .artifacts/build/site/sitemap.xml
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v5

@@ -41,6 +41,8 @@ def test_github_pages_workflow_builds_and_deploys_public_site() -> None:
     build_step = next(step for step in steps if step.get("name") == "Build GitHub Pages artifact")
     build_command = build_step.get("run")
     assert isinstance(build_command, str)
+    assert "--site-origin" in build_command
+    assert "steps.pages.outputs.origin" in build_command
     assert "--base-path" in build_command
     assert "steps.pages.outputs.base_path" in build_command
     edition_step = next(
@@ -53,6 +55,8 @@ def test_github_pages_workflow_builds_and_deploys_public_site() -> None:
     assert ".artifacts/build/site/revised/search/index.html" in edition_command
     assert ".artifacts/build/site/revised/unix/u-67/index.html" in edition_command
     assert ".artifacts/build/site/revised/dataset.json" in edition_command
+    assert ".artifacts/build/site/robots.txt" in edition_command
+    assert ".artifacts/build/site/sitemap.xml" in edition_command
     upload_step = next(step for step in steps if step.get("name") == "Upload GitHub Pages artifact")
     assert upload_step.get("with") == {
         "path": ".artifacts/build/site",

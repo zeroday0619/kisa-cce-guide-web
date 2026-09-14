@@ -157,14 +157,17 @@ def test_generate_corpus_main_logs_an_unhandled_exception(
     assert _log_events(tmp_path) == ["command.started", "runtime.unhandled_exception"]
 
 
+@pytest.mark.parametrize("origin", ["", "https://guide.example"])
 def test_build_content_main_logs_handled_failure(
+    origin: str,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """An error converted to exit code one must be written as a failed command event."""
 
-    def fail_build(*, base_path: str, workers: int) -> list[Path]:
+    def fail_build(*, base_path: str, workers: int, site_origin: str) -> list[Path]:
+        assert site_origin == origin
         assert workers == TEST_WORKER_COUNT
         message = f"invalid base path: {base_path}"
         raise ValueError(message)
@@ -177,6 +180,7 @@ def test_build_content_main_logs_handled_failure(
             "build-content",
             "--base-path",
             "/invalid",
+            *(["--site-origin", origin] if origin else []),
             "--workers",
             str(TEST_WORKER_COUNT),
             "--log-directory",
@@ -192,7 +196,9 @@ def test_build_content_main_logs_handled_failure(
     assert _log_events(tmp_path) == ["command.started", "command.failed"]
 
 
+@pytest.mark.parametrize("origin", ["", "https://guide.example"])
 def test_build_sites_bundle_main_uses_shared_logging_configuration(
+    origin: str,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -201,7 +207,8 @@ def test_build_sites_bundle_main_uses_shared_logging_configuration(
 
     forwarded_workers: list[int] = []
 
-    def fake_build_sites_bundle(*, workers: int) -> list[Path]:
+    def fake_build_sites_bundle(*, workers: int, site_origin: str) -> list[Path]:
+        assert site_origin == origin
         forwarded_workers.append(workers)
         return [tmp_path / "index.html"]
 
@@ -215,6 +222,7 @@ def test_build_sites_bundle_main_uses_shared_logging_configuration(
         "argv",
         [
             "build-sites-bundle",
+            *(["--site-origin", origin] if origin else []),
             "--workers",
             str(TEST_WORKER_COUNT),
             "--log-directory",

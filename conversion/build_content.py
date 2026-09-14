@@ -33,6 +33,7 @@ from conversion.common import (
     provenance_by_reference,
     repository_root,
 )
+from conversion.crawler_discovery import normalize_site_origin, write_crawler_discovery
 from conversion.parallel import (
     default_worker_count,
     parse_worker_count,
@@ -413,12 +414,14 @@ def _build(  # noqa: PLR0913
     repository: Path,
     output_directory: Path,
     base_path: str = "",
+    site_origin: str = "",
     workers: int,
     executor: Executor | None,
     validate_corpus: bool,
 ) -> list[Path]:
     """Build the canonical corpus and return generated artifact paths."""
 
+    site_origin = normalize_site_origin(site_origin)
     load_revisions(repository)
     if output_directory == repository / BUILD_DIRECTORY:
         # Replacing generated directories prevents removed criteria from leaving stale files.
@@ -539,14 +542,23 @@ def _build(  # noqa: PLR0913
             repository=repository, output_root=output_directory, base_path=base_path
         )
     )
+    generated_paths.extend(
+        write_crawler_discovery(
+            site_root=output_directory / "site",
+            generated_paths=generated_paths,
+            base_path=base_path,
+            site_origin=site_origin,
+        )
+    )
     return generated_paths
 
 
-def _build_validated(
+def _build_validated(  # noqa: PLR0913
     *,
     root: Path,
     output_root: Path,
     base_path: str = "",
+    site_origin: str = "",
     workers: int = 1,
     executor: Executor | None = None,
 ) -> list[Path]:
@@ -556,22 +568,25 @@ def _build_validated(
         repository=root,
         output_directory=output_root,
         base_path=base_path,
+        site_origin=site_origin,
         workers=validate_worker_count(workers),
         executor=executor,
         validate_corpus=False,
     )
 
 
-def build(
+def build(  # noqa: PLR0913
     *,
     root: Path | None = None,
     output_root: Path | None = None,
     base_path: str = "",
+    site_origin: str = "",
     workers: int = 1,
     executor: Executor | None = None,
 ) -> list[Path]:
     """Build the canonical corpus and return generated artifact paths."""
 
+    site_origin = normalize_site_origin(site_origin)
     worker_count = validate_worker_count(workers)
     repository = root or repository_root()
     output_directory = output_root or repository / BUILD_DIRECTORY
@@ -580,6 +595,7 @@ def build(
             repository=repository,
             output_directory=output_directory,
             base_path=base_path,
+            site_origin=site_origin,
             workers=worker_count,
             executor=executor,
             validate_corpus=True,
@@ -589,6 +605,7 @@ def build(
             repository=repository,
             output_directory=output_directory,
             base_path=base_path,
+            site_origin=site_origin,
             workers=worker_count,
             executor=owned_executor,
             validate_corpus=True,
@@ -609,6 +626,12 @@ def _argument_parser() -> argparse.ArgumentParser:
         type=parse_worker_count,
         default=default_worker_count(),
         help="parallel worker processes for validation and normalization",
+    )
+    parser.add_argument(
+        "--site-origin",
+        type=normalize_site_origin,
+        default="",
+        help="public HTTP(S) origin for sitemap URLs; omit to skip sitemap generation",
     )
     add_logging_arguments(parser)
     return parser
@@ -632,6 +655,7 @@ def main() -> int:
         try:
             generated_paths = build(
                 base_path=arguments.base_path,
+                site_origin=arguments.site_origin,
                 workers=arguments.workers,
             )
         except ValueError as error:
@@ -640,6 +664,7 @@ def main() -> int:
                 event="command.failed",
                 error=error,
                 base_path=arguments.base_path,
+                site_origin=arguments.site_origin,
                 workers=arguments.workers,
             )
             print(str(error), file=sys.stderr)
