@@ -19,6 +19,7 @@ from conversion.common import JsonValue, as_mapping, as_sequence
 from conversion.paths import (
     CANONICAL_ASSET_DIRECTORY,
     SITE_ASSET_DIRECTORY,
+    SITE_LLMS_TEMPLATE_PATH,
     SITE_SKILL_DIRECTORY,
     SITE_TEMPLATE_DIRECTORY,
     repository_root,
@@ -1046,6 +1047,15 @@ def build_site(
     public_skill_path = site_root / "SKILL.md"
     public_skill_path.write_text(skill_document, encoding="utf-8")
     generated_paths.append(public_skill_path)
+
+    llms_path = site_root / "llms.txt"
+    llms_path.write_text(
+        environment.get_template(
+            SITE_LLMS_TEMPLATE_PATH.relative_to(SITE_TEMPLATE_DIRECTORY).as_posix()
+        ).render(site_url=lambda path: _site_url(path, base_path=base_path)),
+        encoding="utf-8",
+    )
+    generated_paths.append(llms_path)
 
     asset_directory = site_root / "assets"
     asset_directory.mkdir()
