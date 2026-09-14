@@ -656,6 +656,41 @@ def test_home_links_llm_usage_to_separate_skill_page(generated_site: Path) -> No
     assert "dataset/search-index.json" not in skill_html
 
 
+def _assert_llms_links_resolve(site_root: Path, *, base_path: str = "") -> None:
+    """Check that every discovery link resolves within the selected deployment."""
+
+    document = (site_root / "llms.txt").read_text(encoding="utf-8")
+    links = re.findall(r"\]\(([^)]+)\)", document)
+    expected_routes = {
+        "/SKILL.md",
+        "/skill/",
+        "/",
+        "/search/",
+        "/unix/",
+        "/revised/",
+        "/revised/search/",
+        "/revised/unix/",
+    }
+    assert set(links) == {f"{base_path}{route}" for route in expected_routes}
+    for link in links:
+        route = link.removeprefix(base_path)
+        target = site_root / route.lstrip("/")
+        if route.endswith("/"):
+            target /= "index.html"
+        assert target.is_file(), link
+    assert document.startswith("# KISA CCE Guide 2026\n")
+    assert "382 criteria across 12 domains" in document
+    assert "67 UNIX criteria" in document
+    assert "not official KISA publications" in document
+    assert "{{" not in document
+
+
+def test_llms_discovery_links_resolve(generated_site: Path) -> None:
+    """The discovery document must distinguish editions and link to built pages."""
+
+    _assert_llms_links_resolve(generated_site)
+
+
 def test_llm_usage_and_skill_page_are_responsive(generated_site: Path) -> None:
     """The LLM usage chapter and separate skill article must fit narrow screens."""
 
@@ -1461,7 +1496,9 @@ def test_subpath_build_prefixes_links() -> None:
 
     with TemporaryDirectory() as directory:
         output_root = Path(directory)
-        build(output_root=output_root, base_path="/kisa-cce-guide-web")
+        generated_paths = build(output_root=output_root, base_path="/kisa-cce-guide-web")
+        assert output_root / "site" / "llms.txt" in generated_paths
+        _assert_llms_links_resolve(output_root / "site", base_path="/kisa-cce-guide-web")
         inspector = _inspect(output_root / "site" / "index.html")
         assert "/kisa-cce-guide-web/search/" in inspector.links
         detail_inspector = _inspect(output_root / "site" / "unix" / "u-01" / "index.html")

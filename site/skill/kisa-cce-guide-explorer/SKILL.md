@@ -1,6 +1,6 @@
 ---
 name: kisa-cce-guide-explorer
-description: Finds and reads published KISA CCE 2026 web pages. Use for infrastructure vulnerability criteria, judgment conditions, remediation procedures, affected targets, and exact security settings.
+description: Finds and reads published KISA CCE 2026 criteria and the independent UNIX Linux revision. Use for judgment conditions, remediation procedures, affected targets, and security settings, selecting the edition for the requested platform.
 ---
 
 # KISA CCE Guide Explorer
@@ -20,23 +20,37 @@ Use this skill when a request involves any of the following:
 
 ## Core Workflow
 
-1. Start with the website search when the user gives a question, keyword, setting, or criterion code.
-2. Open the best matching criterion page. Open several candidates when the request is ambiguous.
-3. Read the visible page header, judgment criteria, remediation summary, impact, and relevant platform-specific procedure.
-4. Answer with links to the criterion page and the nearest section anchors.
+1. Select the edition using the user's request and target platform as described below.
+2. Start with that edition's search when the user gives a question, keyword, setting, or criterion code.
+3. Open the best matching criterion page. Open several candidates when the request is ambiguous.
+4. Read the visible page header, edition, judgment criteria, remediation summary, impact, and relevant platform-specific procedure.
+5. Name the edition used and answer with links to the criterion page and the nearest section anchors.
+
+## Edition Selection
+
+- Follow an explicitly requested original or revised edition.
+- For RHEL 10, Ubuntu 26.04 LTS, or Debian 13 questions about UNIX U-01 through U-67, prefer the independent Linux revision and its `/revised/search/` directory.
+- For the original KISA wording, Solaris, AIX, HP-UX, or non-UNIX domains, use the original edition and `/search/`.
+- A UNIX code alone does not identify a platform or edition. If neither is specified, identify both editions and clarify the target before choosing platform-specific procedures. Do not silently substitute revised requirements for the original.
+- When comparing editions, open both articles using the visible counterpart link. Keep each edition's judgment conditions and procedures separate.
+
+The original edition contains 382 criteria across 12 domains. The revision contains 67 UNIX criteria for the three Linux targets above. It is an independent editorial revision, not an official KISA revision, and does not replace Solaris, AIX, or HP-UX guidance. Editorial status `final` does not establish execution testing or human approval. The original KISA PDF remains the authority for the source guide.
 
 ## HTTP Usage
 
-Use the guide base URL supplied by the user. If this file came from the guide website, remove `/SKILL.md` from its URL to obtain the base URL. Do not guess a missing deployment URL.
+Use the guide base URL supplied by the user. If this file came from the guide website, remove `/SKILL.md` from its URL to obtain the base URL. Preserve any deployment subpath, such as `/kisa-cce-guide-web`. Append the paths below to that base rather than resolving them against the host root. Do not guess a missing deployment URL.
 
 Append these paths to the base URL:
 
 - Home: `/`
+- LLM entrypoint directory: `/llms.txt`
 - Search: `/search/?q={url-encoded-query}`
 - Technical domain: `/{domainIdentifier}/`
 - Category: `/{domainIdentifier}/{categoryIdentifier}/`
 - Criterion article: `/{domainIdentifier}/{slug}/`
 - Independent Linux revision directory: `/revised/`
+- Revised UNIX domain: `/revised/unix/`
+- Revised category: `/revised/unix/{categoryIdentifier}/`
 - Independent revised UNIX article: `/revised/unix/{slug}/`
 - Revised edition search: `/revised/search/?q={url-encoded-query}`
 
@@ -46,6 +60,8 @@ Examples:
 - `/unix/`
 - `/unix/unix-account-management/`
 - `/unix/u-01/`
+- `/revised/search/?q=PermitRootLogin`
+- `/revised/unix/u-01/`
 - `/web-application/si/`
 
 Do not inspect repository source files, build artifacts, or JSON datasets unless the user explicitly asks for implementation details or machine-readable data.
@@ -54,7 +70,7 @@ Do not inspect repository source files, build artifacts, or JSON datasets unless
 
 ### Search Directory
 
-Use `/search/` for natural-language questions, codes, titles, commands, paths, settings, products, and protocols. Search order identifies candidates; it does not prove that the first result is the only applicable criterion.
+Use the selected edition's search for natural-language questions, codes, titles, commands, paths, settings, products, and protocols. Search order identifies candidates; it does not prove that the first result is the only applicable criterion.
 
 Search at `/search/` covers the original 382 criteria. Search at `/revised/search/` covers the 67 revised UNIX criteria for RHEL 10, Ubuntu 26.04 LTS, and Debian 13. Both editions use the same article structure and navigation. Cite the edition used and follow its counterpart link when comparing requirements.
 
@@ -100,7 +116,7 @@ Treat the rendered criterion article as the answer source. Read these visible se
 
 ### Search results do not update
 
-Interactive ranking may be unavailable in a text-only web client. Use the complete criterion directory already rendered on `/search/`, or navigate through a domain page.
+Interactive ranking may be unavailable in a text-only web client. Use the complete criterion directory already rendered on the selected edition's `/search/` or `/revised/search/`, or navigate through that edition's domain page.
 
 ### A page is too broad
 

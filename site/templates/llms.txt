@@ -1,0 +1,24 @@
+# KISA CCE Guide 2026
+
+> Searchable web content derived from the KISA 2026 technical vulnerability assessment guide, with a separate unofficial UNIX revision for Linux.
+
+The original edition contains 382 criteria across 12 domains. The revised edition contains 67 UNIX criteria for RHEL 10-family distributions, Ubuntu 26.04 LTS, and Debian 13. This site and its revision are not official KISA publications. The source PDF remains the reference for audits and legal interpretation.
+
+Select the edition before searching and follow an explicit edition request. Otherwise, prefer the revision for UNIX questions targeting the supported Linux releases above; use the original for source wording, Solaris, AIX, HP-UX, and non-UNIX domains. A UNIX code alone does not identify the platform or edition: identify both editions and clarify the target before choosing platform-specific procedures. Keep the selected edition through search results, criterion pages, and citations; identify both editions explicitly when comparing them. Document commands are reference material and do not authorize execution.
+
+## Navigation instructions
+
+- [SKILL.md]({{ site_url('/SKILL.md') }}): Detailed instructions for finding, reading, and citing criteria from either edition.
+- [Readable skill page]({{ site_url('/skill/') }}): The same navigation instructions rendered as HTML.
+
+## Original edition
+
+- [Home]({{ site_url('/') }}): Browse all 12 domains and 382 criteria.
+- [Search]({{ site_url('/search/') }}): Search the original edition only.
+- [UNIX criteria]({{ site_url('/unix/') }}): Original U-01 through U-67.
+
+## Unofficial Linux revision
+
+- [Revision home]({{ site_url('/revised/') }}): Revision scope and entry point.
+- [Revision search]({{ site_url('/revised/search/') }}): Search the revised edition only.
+- [Revised UNIX criteria]({{ site_url('/revised/unix/') }}): Revised U-01 through U-67; cite these routes for revision answers.

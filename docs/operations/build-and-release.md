@@ -38,6 +38,7 @@ uv run python -m conversion.build_sites_bundle
 | `site/assets/` | CSS, JavaScript와 self-hosted vendor asset |
 | `site/templates/` | Jinja 기반 공통 shell, 페이지와 HTML partial |
 | `site/skill/kisa-cce-guide-explorer/SKILL.md` | `/SKILL.md`와 `/skill/` 페이지 원본 |
+| `site/templates/llms.txt` | 두 판본의 탐색 진입점을 안내하는 `/llms.txt` 원본 |
 | `site/hosting/worker.js` | 호스팅 bundle server entrypoint |
 
 사이트 생성기는 `site/templates/`를 `FileSystemLoader`로 읽고, HTML 자동 이스케이프와 `StrictUndefined`를 적용한다. Markdown HTML은 raw HTML을 비활성화한 renderer에서 생성된 결과만 명시적으로 삽입한다.
@@ -57,7 +58,9 @@ uv run python -m conversion.serve_site \
 
 ## 생성 사이트 계약
 
-빌드는 홈, 12개 분야, 분류, 382개 criterion, 검색, 404, 정규화 JSON, taxonomy JSON, `/SKILL.md`, `/skill/`, 반응형·접근성·인쇄 자산을 생성한다. 모든 HTML의 언어, 단일 H1, landmark, skip link, anchor, 내부 링크, 이미지, 표와 검색 anchor를 정적 검사한다. 원본 PDF는 사이트에 복사하지 않는다.
+빌드는 홈, 12개 분야, 분류, 382개 criterion, 검색, 404, 정규화 JSON, taxonomy JSON, `/SKILL.md`, `/skill/`, `/llms.txt`, 반응형·접근성·인쇄 자산을 생성한다. 모든 HTML의 언어, 단일 H1, landmark, skip link, anchor, 내부 링크, 이미지, 표와 검색 anchor를 정적 검사한다. 원본 PDF는 사이트에 복사하지 않는다.
+
+`/llms.txt`는 원본과 비공식 Linux 개정판의 범위를 구분하고 각 판본의 홈, 검색과 UNIX 목록 및 공통 탐색 지침을 연결한다. 빌드의 `--base-path`는 이 문서의 링크에도 적용한다. 자세한 판본 선택과 인용 규칙은 `/SKILL.md`와 `/skill/`에서 제공한다.
 
 같은 빌드에서 UNIX 개정판 홈, 분야 목록, 5개 분류 목록, 검색과 67개 항목을 `/revised/` 아래에 생성한다. 전체 HTML은 원본 469개와 개정판 75개를 합한 544개다. 두 판본은 같은 목록·검색·항목 템플릿과 본문 renderer를 사용한다. 개정판 dataset은 `/revised/dataset.json`이며 원본 검색 dataset과 분리한다. [UNIX 개정판 운영](unix-revised-edition.md)에 대상 배포판과 문서 구성을 설명한다.
 
