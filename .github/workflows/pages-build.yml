@@ -46,6 +46,7 @@ jobs:
         run: |
           test -f .artifacts/build/site/unix/u-01/index.html
           test -f .artifacts/build/site/revised/index.html
+          test -f .artifacts/build/site/revised/search/index.html
           test -f .artifacts/build/site/revised/unix/u-01/index.html
           test -f .artifacts/build/site/revised/unix/u-67/index.html
           test -f .artifacts/build/site/revised/dataset.json

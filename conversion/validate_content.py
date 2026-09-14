@@ -512,7 +512,7 @@ def _validate_release_generated_outputs(
         site_issues = validate_site(
             site_root=first_root / "site",
             manifest={"criteria": criteria_values},
-            expected_html_page_count=537,
+            expected_html_page_count=544,
             executor=executor,
         )
         issues.extend(

@@ -29,7 +29,7 @@ from conversion.paths import SITE_SKILL_DIRECTORY
 from conversion.site_validation import validate_site
 
 EXPECTED_CRITERION_COUNT = 382
-EXPECTED_HTML_PAGE_COUNT = 537
+EXPECTED_HTML_PAGE_COUNT = 544
 EXPECTED_TABLE_COUNT = 69
 EXPECTED_LICENSE = "공공누리 - 공공저작물 자유이용허락"
 HEX_SHORT_LENGTH = 3
@@ -461,6 +461,41 @@ def test_all_html_pages_display_public_license(generated_site: Path) -> None:
         assert html_text.count(expected_text) == 1, html_path
 
 
+def test_revised_articles_share_original_document_components(generated_site: Path) -> None:
+    """Every revised article must retain the original document layout and controls."""
+
+    shared_components = (
+        'class="page-shell page-shell--detail"',
+        'class="criterion-meta"',
+        'class="criterion__body"',
+        'class="judgment-criteria"',
+        'class="pager"',
+        "data-table-of-contents",
+        "data-copy-surface",
+    )
+    for number in range(1, 68):
+        slug = f"u-{number:02}"
+        original = (generated_site / "unix" / slug / "index.html").read_text(encoding="utf-8")
+        revised = (generated_site / "revised" / "unix" / slug / "index.html").read_text(
+            encoding="utf-8"
+        )
+        for component in shared_components:
+            assert component in original, (slug, component)
+            assert component in revised, (slug, component)
+        original_styles = re.findall(r'<link rel="stylesheet" href="([^"]+)"', original)
+        revised_styles = re.findall(r'<link rel="stylesheet" href="([^"]+)"', revised)
+        assert "/assets/styles.css" in original_styles, slug
+        assert "/assets/styles.css" in revised_styles, slug
+        assert "/assets/highlight-init.js" in revised, slug
+        for heading in ("개요", "점검 대상 및 판단 기준", "점검 및 조치 사례"):
+            assert f">{heading}</h2>" in revised, slug
+        assert 'href="/revised/search/"' in revised, slug
+        assert f'href="/unix/{slug}/"' in revised, slug
+        assert "skill-document" not in revised, slug
+        assert "초안" not in revised, slug
+        assert "Verification required" not in revised, slug
+
+
 def test_shell_keeps_footer_at_viewport_bottom(generated_site: Path) -> None:
     """Short pages must push the footer to the viewport bottom without affecting print."""
 
@@ -718,8 +753,11 @@ def test_header_menu_contains_domain_exploration(generated_site: Path) -> None:
         navigation_html = html_text.partition('<nav id="site-navigation"')[2].partition("</nav>")[0]
         assert '<details class="site-nav__domains"' in navigation_html, html_path
         assert "<summary>분야</summary>" in navigation_html, html_path
-        assert '<li><a href="/">전체 분야</a></li>' in navigation_html, html_path
-        for domain_route in domain_routes:
+        is_revised = html_path.relative_to(generated_site).parts[0] == "revised"
+        home_route = "/revised/" if is_revised else "/"
+        assert f'<li><a href="{home_route}">전체 분야</a></li>' in navigation_html, html_path
+        expected_routes = ['href="/revised/unix/"'] if is_revised else domain_routes
+        for domain_route in expected_routes:
             assert domain_route in navigation_html, html_path
 
     detail_html = (generated_site / "unix" / "u-01" / "index.html").read_text(encoding="utf-8")

@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from conversion.paths import REVISED_CRITERIA_DIRECTORY, SITE_TEMPLATE_DIRECTORY, repository_root
 from conversion.revised_content import (
@@ -27,37 +28,53 @@ def _revision_fixture(root: Path) -> Path:
     )
     (root / "data").mkdir()
     shutil.copyfile(repository_root() / "data/taxonomy.yaml", root / "data/taxonomy.yaml")
+    for name in ("criteria-manifest.yaml", "source-registry.yaml"):
+        shutil.copyfile(repository_root() / "data" / name, root / "data" / name)
+    shutil.copytree(repository_root() / "content/criteria/unix", root / "content/criteria/unix")
     directory = root / REVISED_CRITERIA_DIRECTORY
     directory.mkdir(parents=True)
     for number in range(1, REVISED_CRITERION_COUNT + 1):
         (directory / f"u-{number:02}.md").write_text(
             f"---\ncriterionCode: U-{number:02}\ntitle: 독립 개정\n"
-            "platforms: [rhel-10, ubuntu-26.04, debian-13]\nstatus: draft\n"
+            "platforms: [rhel-10, ubuntu-26.04, debian-13]\nstatus: final\n"
             "sources:\n  - title: 공식 문서\n    url: https://example.org/document\n---\n"
-            "## 점검\n설정의 유효값을 확인한다.\n## 조치\n<script>alert(1)</script>\n"
-            "\n| 설정 | 값 |\n| --- | --- |\n| 기능 | 제한 |\n",
+            "## 개요\n### 점검 내용\n설정 확인 여부 점검\n"
+            "### 점검 목적\n접근 통제를 목적으로 함\n### 보안 위협\n비인가 접근 위험이 존재함\n"
+            "## 점검 대상 및 판단 기준\n### 대상\nRHEL, Ubuntu, Debian\n"
+            "### 판단 기준\n- **양호:** 제한된 경우\n- **취약:** 허용된 경우\n"
+            "### 조치 방법\n설정 변경\n### 조치 시 영향\n접근 제한\n"
+            "## 점검 및 조치 사례\n### RHEL 10\n1. 설정을 확인한다.\n"
+            "\n```bash command\nprintf test\n```\n"
+            "<script>alert(1)</script>\n"
+            "\n| 설정 | 값 |\n| --- | --- |\n| 기능 | 제한 |\n"
+            "### Ubuntu 26.04 LTS\n1. 설정을 확인한다.\n\n```bash command\nprintf test\n```\n"
+            "### Debian 13\n1. 설정을 확인한다.\n\n```bash command\nprintf test\n```\n",
             encoding="utf-8",
         )
     return directory
 
 
 def test_revised_pages_preserve_edition_and_base_path(tmp_path: Path) -> None:
-    """Keep draft content independent and escape embedded HTML."""
+    """Keep final content independent and escape embedded HTML."""
 
     _revision_fixture(tmp_path)
     output = tmp_path / "output"
     paths = build_revised_edition(repository=tmp_path, output_root=output, base_path="/guide/")
-    assert len(paths) == REVISED_CRITERION_COUNT + 2
+    assert len(paths) == REVISED_CRITERION_COUNT * 2 + 10
     page = (output / "site/revised/unix/u-01/index.html").read_text(encoding="utf-8")
     assert 'href="/guide/unix/u-01/"' in page
     assert 'href="/guide/revised/"' in page
     assert page.count(LICENSE_LABEL) == 1
-    assert "독립 개정 초안" in page
+    assert "초안" not in page
+    assert "skill-document" not in page
+    assert 'class="criterion__body"' in page
+    assert 'class="pager"' in page
+    assert 'href="/guide/revised/unix/u-02/"' in page
     assert "<script>" not in page
-    assert 'id="u-01-section-1"' in page
+    assert 'data-block-reference="u-01:overview.heading:1"' in page
     assert 'id="theme-selector"' in page
     assert 'src="/guide/assets/theme-init.js"' in page
-    assert "<caption>" in page
+    assert 'class="table-scroll"' in page
     assert '<th scope="col">' in page
     dataset = json.loads((output / "site/revised/dataset.json").read_text(encoding="utf-8"))
     assert len(dataset["records"]) == REVISED_CRITERION_COUNT
@@ -66,17 +83,30 @@ def test_revised_pages_preserve_edition_and_base_path(tmp_path: Path) -> None:
     build_revised_edition(repository=tmp_path, output_root=output, base_path="/guide/")
     assert before == {path: path.read_bytes() for path in paths}
     assert not (output / "normalized").exists()
+    search = json.loads((output / "site/revised/dataset/search-index.json").read_text())
+    schema = json.loads((repository_root() / "schemas/search-index.schema.json").read_text())
+    Draft202012Validator(schema).validate(search)
+    assert len(search["records"]) == REVISED_CRITERION_COUNT
+    assert all(record["route"].startswith("/revised/unix/") for record in search["records"])
+    assert search["records"][0]["targetLabels"] == ["RHEL 10", "Ubuntu 26.04 LTS", "Debian 13"]
+    assert 'href="/guide/revised/search/"' in page
+    assert 'data-source-physical-pages="12"' not in page
+    assert "data-copy" in page
+    assert "language-bash" in page
 
 
 @pytest.mark.parametrize(
     ("old", "new"),
     [
-        ("status: draft", "status: approved"),
-        ("status: draft", "status: draft\napproved: true"),
+        ("status: final", "status: approved"),
+        ("status: final", "status: final\napproved: true"),
         ("criterionCode: U-01", "criterionCode: U-02"),
         ("ubuntu-26.04", "ubuntu-24.04"),
         ("https://example.org/document", "javascript:alert(1)"),
-        ("## 조치", "# 조치"),
+        ("## 점검 및 조치 사례", "# 조치"),
+        ("### 조치 시 영향", "### 영향"),
+        ("**양호:**", "**통과:**"),
+        ("1. 설정을", "설정을"),
     ],
 )
 def test_invalid_revision_fails_before_output(tmp_path: Path, old: str, new: str) -> None:
@@ -129,7 +159,7 @@ def test_revised_dataset_schema_rejects_contract_drift(tmp_path: Path, change: s
     elif change == "extra":
         dataset["records"][0]["approved"] = True
     else:
-        dataset["schemaVersion"] = 2
+        dataset["schemaVersion"] = 1
     with pytest.raises(ValueError, match="revised dataset validation failed"):
         validate_revised_dataset(dataset, tmp_path)
 

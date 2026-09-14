@@ -223,6 +223,7 @@ def _render_page(
     json_alternate_url: str | None = None,
     structured_data: Mapping[str, JsonValue] | None = None,
     page_context: Mapping[str, object] | None = None,
+    edition_prefix: str = "",
 ) -> str:
     """Render one complete page through the shared Jinja template shell."""
 
@@ -237,6 +238,7 @@ def _render_page(
             base_path=base_path,
         ),
         "home_url": _site_url("/", base_path=base_path),
+        "original_url": _site_url("/", base_path=base_path),
         "revised_url": _site_url("/revised/", base_path=base_path),
         "json_alternate_url": json_alternate_url,
         "license_label": license_label,
@@ -255,6 +257,14 @@ def _render_page(
         ),
         "title": title,
     }
+    if edition_prefix:
+        context["home_url"] = _site_url(f"{edition_prefix}/", base_path=base_path)
+        context["search_url"] = _site_url(f"{edition_prefix}/search/", base_path=base_path)
+        context["domain_navigation_items"] = _domain_navigation_view(
+            domains=domains,
+            current_domain=current_domain,
+            base_path=base_path.rstrip("/") + edition_prefix,
+        )
     if page_context is not None:
         context.update(page_context)
     return environment.get_template(template_name).render(context)
@@ -788,13 +798,15 @@ def _detail_page(
 ) -> str:
     """Render one criterion detail page."""
 
+    edition_prefix = "/revised" if normalized.get("edition") == "revised" else ""
+
     criterion = as_mapping(normalized["criterion"], location="normalized.criterion")
     classification = as_mapping(
         normalized["classification"],
         location="normalized.classification",
     )
     provenance = as_mapping(
-        normalized["provenance"],
+        normalized["basedOn"] if edition_prefix else normalized["provenance"],
         location="normalized.provenance",
     )
     code = _text(criterion["code"], location="criterion.code")
@@ -868,11 +880,11 @@ def _detail_page(
     source_title = _text(source_document["title"], location="source.title")
     source_publisher = _text(source_document["publisher"], location="source.publisher")
     dataset_url = _site_url(
-        f"/dataset/criteria/{domain_identifier}/{_text(criterion['slug'], location='criterion.slug')}.json",
+        f"{edition_prefix}/dataset/criteria/{domain_identifier}/{_text(criterion['slug'], location='criterion.slug')}.json",
         base_path=base_path,
     )
     criterion_url = _site_url(
-        f"/{domain_identifier}/{_text(criterion['slug'], location='criterion.slug')}/",
+        f"{edition_prefix}/{domain_identifier}/{_text(criterion['slug'], location='criterion.slug')}/",
         base_path=base_path,
     )
     structured_data: dict[str, JsonValue] = {
@@ -901,6 +913,8 @@ def _detail_page(
         "keywords": [severity_source, *target_labels],
         "pagination": f"{first_page}-{last_page}",
     }
+    if edition_prefix:
+        structured_data.pop("pagination")
     previous_item = (
         {
             "code": _text(previous_record["code"], location="previous.code"),
@@ -926,6 +940,7 @@ def _detail_page(
     return _render_page(
         environment=environment,
         template_name="pages/criterion.html",
+        edition_prefix=edition_prefix,
         title=f"{code} {title} · KISA CCE 가이드 2026",
         description=f"{code} {title} 점검항목",
         base_path=base_path,
@@ -942,7 +957,7 @@ def _detail_page(
         page_context={
             "category_label": category_label,
             "category_url": _site_url(
-                f"/{domain_identifier}/{category_identifier}/",
+                f"{edition_prefix}/{domain_identifier}/{category_identifier}/",
                 base_path=base_path,
             ),
             "code": code,
@@ -950,12 +965,16 @@ def _detail_page(
             "criterion_title": title,
             "revised_criterion_url": (
                 _site_url(f"/revised/unix/{code.lower()}/", base_path=base_path)
-                if domain_identifier == "unix"
+                if domain_identifier == "unix" and not edition_prefix
                 else None
             ),
+            "original_criterion_url": _site_url(f"/unix/{code.lower()}/", base_path=base_path)
+            if edition_prefix
+            else None,
+            "edition_label": "Linux 개정판" if edition_prefix else None,
             "document_class": document_class,
             "domain_label": domain_label,
-            "domain_url": _site_url(f"/{domain_identifier}/", base_path=base_path),
+            "domain_url": _site_url(f"{edition_prefix}/{domain_identifier}/", base_path=base_path),
             "first_page": first_page,
             "last_page": last_page,
             "next_item": next_item,
