@@ -38,6 +38,7 @@ Append these paths to the base URL:
 - Criterion article: `/{domainIdentifier}/{slug}/`
 - Independent Linux revision directory: `/revised/`
 - Independent revised UNIX article: `/revised/unix/{slug}/`
+- Revised edition search: `/revised/search/?q={url-encoded-query}`
 
 Examples:
 
@@ -55,7 +56,7 @@ Do not inspect repository source files, build artifacts, or JSON datasets unless
 
 Use `/search/` for natural-language questions, codes, titles, commands, paths, settings, products, and protocols. Search order identifies candidates; it does not prove that the first result is the only applicable criterion.
 
-Search covers the original 382 criteria. For RHEL 10, Ubuntu 26.04 LTS, or Debian 13 guidance, open the corresponding `/revised/unix/{slug}/` article after identifying the UNIX code. Revised articles are independent editorial drafts, not official KISA revisions or evidence of runtime verification. Cite the edition used and follow its original-counterpart link when comparing requirements.
+Search at `/search/` covers the original 382 criteria. Search at `/revised/search/` covers the 67 revised UNIX criteria for RHEL 10, Ubuntu 26.04 LTS, and Debian 13. Both editions use the same article structure and navigation. Cite the edition used and follow its counterpart link when comparing requirements.
 
 ### Domain and Category Pages
 
@@ -83,7 +84,7 @@ Treat the rendered criterion article as the answer source. Read these visible se
 - Do not combine platform- or vendor-specific procedures unless the page explicitly applies the same instruction to them.
 - Treat target wording containing `등` as non-exhaustive.
 - Do not infer support for an unlisted version, operating system, or product.
-- Mark unresolved ambiguity as `Verification required`.
+- Keep the answer within the platform and configuration covered by the cited article.
 - Do not execute remediation unless the user explicitly requests it.
 
 ## Best Practices

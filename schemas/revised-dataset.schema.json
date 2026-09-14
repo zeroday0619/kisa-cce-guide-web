@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "edition", "records"],
   "properties": {
-    "schemaVersion": {"const": 1},
+    "schemaVersion": {"const": 2},
     "edition": {"const": "revised"},
     "records": {
       "type": "array",
@@ -21,7 +21,7 @@
           "criterionCode": {"type": "string", "pattern": "^U-(0[1-9]|[1-5][0-9]|6[0-7])$"},
           "title": {"type": "string", "pattern": "\\S"},
           "platforms": {"const": ["rhel-10", "ubuntu-26.04", "debian-13"]},
-          "status": {"const": "draft"},
+          "status": {"const": "final"},
           "sources": {
             "type": "array",
             "minItems": 1,

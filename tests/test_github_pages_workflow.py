@@ -50,6 +50,7 @@ def test_github_pages_workflow_builds_and_deploys_public_site() -> None:
     assert isinstance(edition_command, str)
     assert ".artifacts/build/site/unix/u-01/index.html" in edition_command
     assert ".artifacts/build/site/revised/index.html" in edition_command
+    assert ".artifacts/build/site/revised/search/index.html" in edition_command
     assert ".artifacts/build/site/revised/unix/u-67/index.html" in edition_command
     assert ".artifacts/build/site/revised/dataset.json" in edition_command
     upload_step = next(step for step in steps if step.get("name") == "Upload GitHub Pages artifact")

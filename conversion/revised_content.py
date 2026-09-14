@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
-from html import escape
 from pathlib import Path
 from typing import cast
 from urllib.parse import urlsplit
@@ -11,17 +11,64 @@ from urllib.parse import urlsplit
 import rfc8785
 from jsonschema import Draft202012Validator, FormatChecker
 from markdown_it import MarkdownIt
-from markupsafe import Markup
 
-from conversion.build_site import _render_page, _taxonomy_maps, _template_environment
-from conversion.common import CriterionDocument, JsonValue, load_criterion, load_json, load_yaml
+from conversion.build_site import (
+    _criterion_list_view,
+    _detail_page,
+    _render_page,
+    _taxonomy_maps,
+    _template_environment,
+)
+from conversion.common import (
+    CriterionDocument,
+    JsonValue,
+    as_mapping,
+    as_sequence,
+    extract_leaf_blocks,
+    heading_identifiers,
+    load_criterion,
+    load_json,
+    load_yaml,
+)
 from conversion.paths import REVISED_CRITERIA_DIRECTORY, SCHEMA_DIRECTORY, SITE_TEMPLATE_DIRECTORY
 
 PLATFORMS = ("rhel-10", "ubuntu-26.04", "debian-13")
 REVISED_CRITERION_COUNT = 67
-REVISED_HTML_PAGE_COUNT = REVISED_CRITERION_COUNT + 1
+REVISED_HTML_PAGE_COUNT = REVISED_CRITERION_COUNT + 8
 _MINIMUM_SECTION_PARTS = 3
 LICENSE_LABEL = "라이선스: 공공누리 - 공공저작물 자유이용허락"
+
+
+def _validate_structure(body: str) -> bool:
+    """Require the original section hierarchy and complete distribution procedures."""
+
+    sections = re.split(r"^## (.+)$", body, flags=re.MULTILINE)
+    if sections[1::2] != ["개요", "점검 대상 및 판단 기준", "점검 및 조치 사례"]:
+        return False
+    required = (
+        ["점검 내용", "점검 목적", "보안 위협"],
+        ["대상", "판단 기준", "조치 방법", "조치 시 영향"],
+        ["RHEL 10", "Ubuntu 26.04 LTS", "Debian 13"],
+    )
+    for section, labels in zip(sections[2::2], required, strict=True):
+        subsections = re.split(r"^### (.+)$", section, flags=re.MULTILINE)
+        headings = subsections[1::2]
+        if [label for label in headings if label != "참고"] != labels:
+            return False
+        if any(not text.strip() for text in subsections[2::2]):
+            return False
+    judgments = sections[4]
+    if not all(
+        re.search(rf"^- \*\*{label}:\*\*\s+\S", judgments, re.MULTILINE)
+        for label in ("양호", "취약")
+    ):
+        return False
+    procedures = re.split(r"^### .+$", sections[6], flags=re.MULTILINE)[1:]
+    return all(
+        re.search(r"^1\. \S", text, re.MULTILINE)
+        and re.search(r"^[ \t]*```(?:bash|text|sh)\b", text, re.MULTILINE)
+        for text in procedures
+    )
 
 
 def _validate_document(document: CriterionDocument) -> None:
@@ -34,7 +81,8 @@ def _validate_document(document: CriterionDocument) -> None:
         and isinstance(metadata.get("title"), str)
         and bool(str(metadata.get("title", "")).strip())
         and metadata.get("platforms") == list(PLATFORMS)
-        and metadata.get("status") == "draft"
+        and metadata.get("status") == "final"
+        and _validate_structure(document.body)
     )
     sources = metadata.get("sources")
     if not isinstance(sources, list) or not sources:
@@ -59,6 +107,12 @@ def _validate_document(document: CriterionDocument) -> None:
         not section.strip() for section in sections[1:]
     ):
         valid = False
+    headings = [
+        tokens[index + 1].content
+        for index, token in enumerate(tokens)
+        if token.type == "heading_open" and token.tag == "h2"
+    ]
+    valid = valid and headings == ["개요", "점검 대상 및 판단 기준", "점검 및 조치 사례"]
     if any(token.type == "heading_open" and token.tag == "h1" for token in tokens):
         valid = False
     if any(token.type == "fence" and not token.info.strip() for token in tokens):
@@ -86,49 +140,6 @@ def load_revisions(repository: Path) -> list[CriterionDocument]:
     return documents
 
 
-def _page(title: str, body: str, base_path: str, repository: Path) -> str:
-    """Render revised content through the shared theme and navigation shell."""
-
-    domains, _, _ = _taxonomy_maps(load_yaml(repository / "data/taxonomy.yaml"))
-    return _render_page(
-        environment=_template_environment(repository / SITE_TEMPLATE_DIRECTORY),
-        template_name="revised.html",
-        title=f"{title} | UNIX 개정판",
-        description="RHEL 10, Ubuntu 26.04 LTS, Debian 13 기준 UNIX 독립 개정 초안",
-        base_path=base_path,
-        domains=domains,
-        current_domain=None,
-        license_label=LICENSE_LABEL.removeprefix("라이선스: "),
-        json_alternate_url=("/" + base_path.strip("/")).rstrip("/") + "/revised/dataset.json",
-        page_context={"revision_title": title, "revision_body": Markup(body)},  # noqa: S704
-    )
-
-
-def _body_html(document: CriterionDocument) -> str:
-    """Render inert Markdown with named tables and scrollable table containers."""
-
-    parser = MarkdownIt("commonmark", {"html": False}).enable("table")
-    tokens = parser.parse(document.body)
-    heading_number = 0
-    for token in tokens:
-        if token.type == "heading_open":
-            heading_number += 1
-            token.attrSet("id", f"{document.path.stem}-section-{heading_number}")
-    rendered = parser.renderer.render(tokens, parser.options, {})
-    table_number = 0
-
-    def table_open(_match: re.Match[str]) -> str:
-        nonlocal table_number
-        table_number += 1
-        return (
-            '<div class="table-scroll"><table>'
-            f"<caption>{escape(str(document.metadata['title']))} — 표 {table_number}</caption>"
-        )
-
-    rendered = re.sub(r"<table>", table_open, rendered)
-    return rendered.replace("</table>", "</table></div>").replace("<th>", '<th scope="col">')
-
-
 def validate_revised_dataset(document: dict[str, JsonValue], repository: Path) -> None:
     """Validate the public revision dataset against its versioned contract."""
 
@@ -141,53 +152,209 @@ def validate_revised_dataset(document: dict[str, JsonValue], repository: Path) -
         raise ValueError(msg)
 
 
+def _normalized_revision(
+    document: CriterionDocument, repository: Path, taxonomy: dict[str, JsonValue]
+) -> dict[str, JsonValue]:
+    """Adapt editorial Markdown to shared semantic rendering without PDF source claims."""
+
+    from conversion.paths import criterion_directory  # noqa: PLC0415
+
+    original = load_criterion(criterion_directory(repository, "unix") / document.path.name)
+    blocks: list[JsonValue] = []
+    for block in extract_leaf_blocks(
+        document.body,
+        criterion_slug=document.path.stem,
+        heading_identifier_mapping={
+            **heading_identifiers(taxonomy),
+            "RHEL 10": "rhel10",
+            "Ubuntu 26.04 LTS": "ubuntu2604",
+            "Debian 13": "debian13",
+        },
+    ):
+        record: dict[str, JsonValue] = {
+            "blockReference": block.block_reference,
+            "blockType": block.block_type,
+            "content": block.content,
+            "semanticRole": block.semantic_role,
+            "semanticPath": list(block.semantic_path),
+            "sourceSpans": [],
+            "technicalLiterals": list(block.technical_literals),
+            "publicationDisposition": "included",
+        }
+        for key, value in {
+            "headingLevel": block.heading_level,
+            "listType": block.list_type,
+            "listDepth": block.list_depth,
+            "codeLanguage": block.code_language,
+            "codeContentType": block.code_content_type,
+            "parentBlockReference": block.parent_block_reference,
+            "tableHeaders": list(block.table_headers) if block.table_headers is not None else None,
+            "tableRows": [list(row) for row in block.table_rows]
+            if block.table_rows is not None
+            else None,
+        }.items():
+            if value is not None:
+                record[key] = cast("JsonValue", value)
+        blocks.append(record)
+    return {
+        "edition": "revised",
+        "contentModel": "systemCriterion",
+        "criterion": original.metadata["criterion"],
+        "classification": original.metadata["classification"],
+        "targetIdentifiers": list(PLATFORMS),
+        "sourceTargetText": "RHEL 10, Ubuntu 26.04 LTS, Debian 13",
+        "basedOn": original.metadata["provenance"],
+        "blocks": blocks,
+    }
+
+
 def build_revised_edition(
     *, repository: Path, output_root: Path, base_path: str = ""
 ) -> list[Path]:
-    """Build independent revision pages and deterministic machine-readable content."""
+    """Build the final edition with the original detail, browsing, and search components."""
+
+    from conversion.build_content import _search_record  # noqa: PLC0415
 
     documents = load_revisions(repository)
+    taxonomy = load_yaml(repository / "data/taxonomy.yaml")
+    domains, categories, targets = _taxonomy_maps(taxonomy)
+    domains = {"unix": domains["unix"]}
+    targets.update(dict(zip(PLATFORMS, ("RHEL 10", "Ubuntu 26.04 LTS", "Debian 13"), strict=True)))
+    manifest = load_yaml(repository / "data/criteria-manifest.yaml")
+    records = [
+        {**record, "route": "/revised" + str(record["route"])}
+        for record in as_sequence(manifest["criteria"], location="manifest.criteria")
+        if isinstance(record, dict) and record["domainIdentifier"] == "unix"
+    ]
+    source_registry = load_yaml(repository / "data/source-registry.yaml")
+    source = as_mapping(
+        as_sequence(source_registry["documents"], location="documents")[0], location="source"
+    )
+    environment = _template_environment(repository / SITE_TEMPLATE_DIRECTORY)
     edition_root = output_root / "site" / "revised"
     base = "/" + base_path.strip("/") if base_path.strip("/") else ""
     paths: list[Path] = []
-    records: list[JsonValue] = []
-    entries: list[str] = []
-    for document in documents:
-        slug = document.path.stem
-        title = f"{document.metadata['criterionCode']} {document.metadata['title']}"
-        route = f"{base}/revised/unix/{slug}/"
-        original = f"{base}/unix/{slug}/"
-        sources = cast("list[dict[str, str]]", document.metadata["sources"])
-        references = "".join(
-            f'<li><a href="{escape(source["url"], quote=True)}">{escape(source["title"])}</a></li>'
-            for source in sources
-        )
-        body = (
-            f'<p><a href="{escape(original, quote=True)}">{slug.upper()} 원본 대조</a></p>'
-            f"<article>{_body_html(document)}</article>"
-            '<section aria-label="공식 참고 자료"><h2>공식 참고 자료</h2>'
-            f"<ul>{references}</ul></section>"
-        )
-        path = edition_root / "unix" / slug / "index.html"
+    dataset_records: list[JsonValue] = []
+    search_records: list[JsonValue] = []
+
+    def write(relative: str, body: str | bytes) -> None:
+        path = edition_root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_page(title, body, base_path, repository), encoding="utf-8")
+        path.write_bytes(body.encode("utf-8") if isinstance(body, str) else body)
         paths.append(path)
-        entries.append(f'<li><a href="{escape(route, quote=True)}">{escape(title)}</a></li>')
-        records.append(
-            {**document.metadata, "route": route, "originalRoute": original, "body": document.body}
+
+    for index, (document, record) in enumerate(zip(documents, records, strict=True)):
+        normalized = _normalized_revision(document, repository, taxonomy)
+        write(
+            f"unix/{document.path.stem}/index.html",
+            _detail_page(
+                environment=environment,
+                normalized=normalized,
+                previous_record=records[index - 1] if index else None,
+                next_record=records[index + 1] if index + 1 < len(records) else None,
+                domains=domains,
+                categories=categories,
+                targets=targets,
+                source_document=source,
+                license_label=LICENSE_LABEL.removeprefix("라이선스: "),
+                base_path=base_path,
+            ),
         )
-    index_path = edition_root / "index.html"
-    index_path.write_text(
-        _page(
-            "UNIX 최신 Linux 배포판 개정판",
-            "<ul>" + "".join(entries) + "</ul>",
-            base_path,
-            repository,
-        ),
-        encoding="utf-8",
+        record_data: dict[str, JsonValue] = {
+            **document.metadata,
+            "route": base + str(record["route"]),
+            "originalRoute": f"{base}/unix/{document.path.stem}/",
+            "body": document.body,
+        }
+        dataset_records.append(record_data)
+        write(f"dataset/criteria/unix/{document.path.stem}.json", rfc8785.dumps(record_data))
+        search_record = _search_record(
+            manifest_record=record,
+            normalized_document=normalized,
+            taxonomy=taxonomy,
+            record_order=index + 1,
+        )
+        search_record["targetLabels"] = [targets[platform] for platform in PLATFORMS]
+        search_records.append(search_record)
+
+    def page(
+        template: str, title: str, context: dict[str, object], *, scripts: tuple[str, ...] = ()
+    ) -> str:
+        return _render_page(
+            environment=environment,
+            template_name=template,
+            title=title,
+            description=title,
+            base_path=base_path,
+            domains=domains,
+            current_domain="unix",
+            edition_prefix="/revised",
+            current_navigation="search" if template == "pages/search.html" else "domains",
+            domain_navigation_current=template != "pages/search.html",
+            license_label=LICENSE_LABEL.removeprefix("라이선스: "),
+            extra_scripts=scripts,
+            page_context=context,
+        )
+
+    sections: list[dict[str, object]] = []
+    for (domain_identifier, category_identifier), category in categories.items():
+        if domain_identifier != "unix":
+            continue
+        selected = [
+            record for record in records if record["categoryIdentifier"] == category_identifier
+        ]
+        views = _criterion_list_view(selected, base_path=base_path)
+        label = str(category["label"])
+        sections.append(
+            {"label": label, "records": views, "url": f"{base}/revised/unix/{category_identifier}/"}
+        )
+        write(
+            f"unix/{category_identifier}/index.html",
+            page(
+                "pages/listing.html",
+                f"UNIX · {label}",
+                {"heading": f"UNIX · {label}", "records": views, "sections": []},
+            ),
+        )
+    listing = page(
+        "pages/listing.html",
+        "UNIX · Linux 개정판",
+        {"heading": "UNIX · Linux 개정판", "records": [], "sections": sections},
     )
-    dataset_path = edition_root / "dataset.json"
-    dataset: dict[str, JsonValue] = {"schemaVersion": 1, "edition": "revised", "records": records}
+    write("index.html", listing)
+    write("unix/index.html", listing)
+    write(
+        "search/index.html",
+        page(
+            "pages/search.html",
+            "검색 · Linux 개정판",
+            {
+                "normalized_base_path": base,
+                "records": _criterion_list_view(records, base_path=base_path),
+                "search_index_url": f"{base}/revised/dataset/search-index.json",
+            },
+            scripts=("/assets/search-core.js", "/assets/search.js"),
+        ),
+    )
+    write(
+        "dataset/search-index.json",
+        rfc8785.dumps(
+            {
+                "schemaVersion": 2,
+                "tokenizerVersion": "unicode-nfc-korean-sections-v2",
+                "caseFoldingVersion": "unicode-default-v1",
+                "canonicalCorpusChecksum": hashlib.sha256(
+                    rfc8785.dumps(dataset_records)
+                ).hexdigest(),
+                "records": search_records,
+            }
+        ),
+    )
+    dataset: dict[str, JsonValue] = {
+        "schemaVersion": 2,
+        "edition": "revised",
+        "records": dataset_records,
+    }
     validate_revised_dataset(dataset, repository)
-    dataset_path.write_bytes(rfc8785.dumps(dataset))
-    return [*paths, index_path, dataset_path]
+    write("dataset.json", rfc8785.dumps(dataset))
+    return paths
