@@ -493,7 +493,10 @@
     }
     if (
       queryAnalysis.targetIntents.some((identifier) =>
-        record.targetIdentifiers.includes(identifier),
+        record.targetIdentifiers.some((targetIdentifier) =>
+          targetIdentifier === identifier ||
+          (identifier === "linux" && /^(?:rhel|ubuntu|debian)-\d/.test(targetIdentifier)),
+        ),
       )
     ) {
       score += 170;

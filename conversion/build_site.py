@@ -246,6 +246,9 @@ def _render_page(
             _site_url(script, base_path=base_path) for script in ["/assets/site.js", *extra_scripts]
         ],
         "search_url": _site_url("/search/", base_path=base_path),
+        "original_search_url": _site_url("/search/", base_path=base_path),
+        "revised_search_url": _site_url("/revised/search/", base_path=base_path),
+        "is_revised_search": bool(edition_prefix),
         "site_stylesheet_url": _site_url("/assets/styles.css", base_path=base_path),
         "structured_data": structured_data,
         "stylesheet_urls": [

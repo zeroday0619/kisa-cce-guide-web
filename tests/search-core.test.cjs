@@ -196,6 +196,41 @@ const records = [
   }),
 ];
 
+test("matches Linux family aliases against versioned revised distribution targets", () => {
+  const revisedRecords = ["rhel-10", "ubuntu-26.04", "debian-13"].map(
+    (targetIdentifier, index) => createRecord({
+      code: `U-0${index + 1}`,
+      title: "계정 설정",
+      domainIdentifier: "unix",
+      domainLabel: "Unix 서버",
+      categoryLabel: "계정 관리",
+      searchableText: "계정 설정 여부 점검",
+      targetIdentifiers: [targetIdentifier],
+      targetLabels: [targetIdentifier],
+      order: index + 1,
+    }),
+  );
+  const unrelatedRecord = createRecord({
+    code: "W-01",
+    title: "계정 설정",
+    domainIdentifier: "windows",
+    domainLabel: "Windows 서버",
+    categoryLabel: "계정 관리",
+    searchableText: "계정 설정 여부 점검",
+    targetIdentifiers: ["windows"],
+    targetLabels: ["Windows"],
+    order: 4,
+  });
+  for (const query of ["Linux", "리눅스", "Ubuntu", "우분투", "Debian"]) {
+    assert.deepEqual(
+      rankRecords([...revisedRecords, unrelatedRecord], query).map(({record}) => record.code),
+      ["U-01", "U-02", "U-03"],
+      query,
+    );
+  }
+  assert.ok(rankRecords(records, "Ubuntu").some(({record}) => record.code === "U-01"));
+});
+
 const assertTopResult = (query, expectedCode) => {
   const rankedRecords = rankRecords(records, query);
   assert.ok(rankedRecords.length > 0, query);
