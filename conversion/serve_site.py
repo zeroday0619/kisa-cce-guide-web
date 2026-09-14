@@ -14,6 +14,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from conversion.build_content import build
 from conversion.common import repository_root
+from conversion.crawler_discovery import normalize_site_origin
 from conversion.parallel import default_worker_count, parse_worker_count
 from conversion.paths import BUILD_DIRECTORY
 from conversion.runtime_logging import add_logging_arguments, configure_runtime_logging
@@ -171,6 +172,12 @@ def _argument_parser() -> argparse.ArgumentParser:
         default=default_worker_count(),
         help="parallel worker processes used when rebuilding",
     )
+    parser.add_argument(
+        "--site-origin",
+        type=normalize_site_origin,
+        default="",
+        help="public HTTP(S) origin for sitemap URLs; omit to skip sitemap generation",
+    )
     add_logging_arguments(parser)
     return parser
 
@@ -200,6 +207,7 @@ def main() -> int:
             build(
                 root=repository,
                 base_path=arguments.base_path,
+                site_origin=arguments.site_origin,
                 workers=arguments.workers,
             )
             logger.info("Local site build completed", event="site.build_completed")

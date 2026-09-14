@@ -13,6 +13,7 @@ from PIL import Image
 
 from conversion.build_content import build
 from conversion.common import repository_root
+from conversion.crawler_discovery import normalize_site_origin
 from conversion.parallel import default_worker_count, parse_worker_count, validate_worker_count
 from conversion.paths import BUILD_DIRECTORY, DISTRIBUTION_DIRECTORY, SITE_HOSTING_DIRECTORY
 from conversion.runtime_logging import add_logging_arguments, configure_runtime_logging
@@ -107,11 +108,13 @@ def _update_hosted_datasets(
         raise ValueError(msg)
 
 
-def build_sites_bundle(*, root: Path | None = None, workers: int = 1) -> list[Path]:
+def build_sites_bundle(
+    *, root: Path | None = None, workers: int = 1, site_origin: str = ""
+) -> list[Path]:
     """Build and stage the validated static site and Worker entry point."""
 
     repository = root or repository_root()
-    build(root=repository, workers=validate_worker_count(workers))
+    build(root=repository, workers=validate_worker_count(workers), site_origin=site_origin)
     distribution_directory = repository / DISTRIBUTION_DIRECTORY
     shutil.rmtree(distribution_directory, ignore_errors=True)
     client_directory = distribution_directory / "client"
@@ -140,6 +143,12 @@ def _argument_parser() -> argparse.ArgumentParser:
         default=default_worker_count(),
         help="parallel worker processes for validation and normalization",
     )
+    parser.add_argument(
+        "--site-origin",
+        type=normalize_site_origin,
+        default="",
+        help="public HTTP(S) origin for sitemap URLs; omit to skip sitemap generation",
+    )
     add_logging_arguments(parser)
     return parser
 
@@ -154,7 +163,9 @@ def main() -> int:
         log_directory=arguments.log_directory,
     ) as logger:
         logger.info("Sites deployment build started", event="command.started")
-        generated_paths = build_sites_bundle(workers=arguments.workers)
+        generated_paths = build_sites_bundle(
+            workers=arguments.workers, site_origin=arguments.site_origin
+        )
         logger.info(
             "Sites deployment build completed",
             event="command.completed",

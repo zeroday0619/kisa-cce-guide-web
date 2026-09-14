@@ -49,7 +49,9 @@ def test_no_build_reports_the_artifact_site_path(
     assert f"{expected_site_path} is missing" in captured.err
 
 
+@pytest.mark.parametrize("origin", ["", "https://guide.example"])
 def test_rebuild_forwards_worker_count(
+    origin: str,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -58,7 +60,8 @@ def test_rebuild_forwards_worker_count(
 
     forwarded_workers: list[int] = []
 
-    def fake_build(*, root: Path, base_path: str, workers: int) -> list[Path]:
+    def fake_build(*, root: Path, base_path: str, workers: int, site_origin: str) -> list[Path]:
+        assert site_origin == origin
         assert root == tmp_path
         assert base_path == ""
         forwarded_workers.append(workers)
@@ -83,6 +86,7 @@ def test_rebuild_forwards_worker_count(
         "argv",
         [
             "serve-site",
+            *(["--site-origin", origin] if origin else []),
             "--workers",
             str(TEST_WORKER_COUNT),
             "--log-directory",
